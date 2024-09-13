@@ -1,0 +1,16 @@
+
+---
+# Disable line wrapping
+ColumnLimit: 0
+
+# Other formatting preferences
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Attach  # Braces on the same line
+AllowShortFunctionsOnASingleLine: Empty
+PointerAlignment: Left
+SpacesBeforeTrailingComments: 1
+AlignTrailingComments: true
+AllowShortIfStatementsOnASingleLine: false
+

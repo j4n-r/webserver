@@ -16,7 +16,8 @@
 
 #define SERVERPORT 8080
 #define BUFSIZE 432768
-#define HEADERBUFFERSIZE 4096
+#define HEADERBUFSIZE 4096
+#define PATHBUFSIZE 4096
 #define SOCKETERROR (-1)
 #define SERVER_BACKLOG 1
 
@@ -26,6 +27,8 @@ typedef struct sockaddr SA;
 void handle_connection(int client_socket);
 size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, char* contentType);
 int checkErr(int exp, const char* msg);
+void printRequest(int client_socker, char* requestBuffer);
+void getPathFromRequest(char* request, char* pathBuffer);
 
 int main(int argc, char** argv) {
     int server_socket, client_socket, addr_size;
@@ -62,12 +65,17 @@ int main(int argc, char** argv) {
 }
 
 void handle_connection(int client_socket) {
-    char responseBuffer[BUFSIZE + HEADERBUFFERSIZE] = {};
+    char responseBuffer[BUFSIZE + HEADERBUFSIZE] = {};
     char contentType[] = "text/html; charset=utf-8";
     char contentBuffer[BUFSIZE] = "Hello World";
     size_t contentLength = strlen(contentBuffer);
+    char requestBuffer[BUFSIZE] = {};
+    char pathBuffer[PATHBUFSIZE] = {};
+
+    printRequest(client_socket, requestBuffer);
 
     // TODO get file path from request (url)
+    getPathFromRequest(requestBuffer, pathBuffer);
 
     // TODO get content from file
 
@@ -88,14 +96,32 @@ size_t constructHttpHeaders(char* contentBuffer, size_t contentLength, char* con
     time_t now = time(NULL);
     char date[128];
     strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now));
-    snprintf(contentBuffer, HEADERBUFFERSIZE, "HTTP/1.1 200 OK\r\n"
-                                              "Date: %s\r\n"
-                                              "Content-Length: %zu\r\n"
-                                              "Content-Type: %s\r\n"
-                                              "Connection: close\r\n"
-                                              "\r\n",
+    snprintf(contentBuffer, HEADERBUFSIZE, "HTTP/1.1 200 OK\r\n"
+                                           "Date: %s\r\n"
+                                           "Content-Length: %zu\r\n"
+                                           "Content-Type: %s\r\n"
+                                           "Connection: keep-alive\r\n"
+                                           "\r\n",
              date, contentLength, contentType);
     return strlen(contentBuffer);
+}
+
+void getPathFromRequest(char* request, char* pathBuffer) {
+
+    for (int i = 0, j = 0; i < PATHBUFSIZE; i++) {
+        if (request[i] == '/') {
+            while (request[i] != ' ') {
+                pathBuffer[j++] = request[i++];
+            }
+            break;
+        }
+    }
+    printf("Path: %s\n", pathBuffer);
+}
+
+void printRequest(int client_socket, char* requestBuffer) {
+    checkErr(read(client_socket, requestBuffer, BUFSIZE), "Error on read request");
+    printf("%s", requestBuffer);
 }
 
 int checkErr(int exp, const char* msg) {

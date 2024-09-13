@@ -29,6 +29,7 @@ size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, char* cont
 int checkErr(int exp, const char* msg);
 void printRequest(int client_socker, char* requestBuffer);
 void getPathFromRequest(char* request, char* pathBuffer);
+size_t readFileData(char* contentBuffer, char* fullPath);
 
 int main(int argc, char** argv) {
     int server_socket, client_socket, addr_size;
@@ -71,7 +72,6 @@ void handle_connection(int client_socket) {
     size_t contentLength = 0;
     char requestBuffer[BUFSIZE] = {};
     char pathBuffer[PATHBUFSIZE] = {};
-    char fullPathBuffer[PATHBUFSIZE] = {};
 
     printRequest(client_socket, requestBuffer);
 
@@ -79,16 +79,8 @@ void handle_connection(int client_socket) {
     getPathFromRequest(requestBuffer, pathBuffer);
 
     // TODO get content from file
-    realpath(pathBuffer, fullPathBuffer);
-    printf("Full path: %s\n", fullPathBuffer);
-    FILE* fp = fopen(fullPathBuffer, "r");
-    if (fp == NULL) {
-        perror("Error opening file");
-        exit(1);
-    }
-    size_t bytes_read = fread(contentBuffer, sizeof(char), BUFSIZE, fp);
-    contentLength = bytes_read;
-    printf("Content Buffer: %s\nBytes read: %zu\n", contentBuffer, bytes_read);
+    contentLength = readFileData(contentBuffer, pathBuffer);
+    printf("Content Buffer: %s\nBytes read: %zu\n", contentBuffer, contentLength);
 
     // construct http headers and get length of it
     size_t headerLength = constructHttpHeaders(responseBuffer, contentLength, contentType);
@@ -103,6 +95,32 @@ void handle_connection(int client_socket) {
     printf("Connection close\n");
 }
 
+void getPathFromRequest(char* request, char* pathBuffer) {
+    char relativPathBuffer[PATHBUFSIZE] = {};
+    char relativPath[] = "frontend/";
+    memcpy(relativPathBuffer, relativPath, strnlen(relativPath, PATHBUFSIZE));
+
+    for (int i = 0, j = strlen(relativPathBuffer); i < PATHBUFSIZE; i++) {
+        if (request[i] == '/') {
+            while (request[i] != ' ') {
+                relativPathBuffer[j++] = request[i++];
+            }
+            break;
+        }
+    }
+    realpath(relativPathBuffer, pathBuffer);
+    printf("Relativ path: %s\n", relativPathBuffer);
+    printf("Full path: %s\n", pathBuffer);
+}
+size_t readFileData(char* contentBuffer, char* fullPath) {
+    FILE* fp = fopen(fullPath, "r");
+    if (fp == NULL) {
+        perror("Error opening file");
+        exit(1);
+    }
+    return fread(contentBuffer, sizeof(char), BUFSIZE, fp);
+}
+
 size_t constructHttpHeaders(char* contentBuffer, size_t contentLength, char* contentType) {
     time_t now = time(NULL);
     char date[128];
@@ -115,21 +133,6 @@ size_t constructHttpHeaders(char* contentBuffer, size_t contentLength, char* con
                                            "\r\n",
              date, contentLength, contentType);
     return strlen(contentBuffer);
-}
-
-void getPathFromRequest(char* request, char* pathBuffer) {
-    char realtivePath[] = "frontend/";
-    memcpy(pathBuffer, realtivePath, strnlen(realtivePath, PATHBUFSIZE));
-
-    for (int i = 0, j = strlen(realtivePath); i < PATHBUFSIZE; i++) {
-        if (request[i] == '/') {
-            while (request[i] != ' ') {
-                pathBuffer[j++] = request[i++];
-            }
-            break;
-        }
-    }
-    printf("Path: %s\n", pathBuffer);
 }
 
 void printRequest(int client_socket, char* requestBuffer) {

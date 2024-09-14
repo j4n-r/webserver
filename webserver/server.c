@@ -81,8 +81,8 @@ void handle_connection(int client_socket) {
 
     //  get content from file
     contentLength = readFileData(contentBuffer, pathBuffer);
-    printf("Content Buffer: %s\nBytes read: %zu\n", contentBuffer, contentLength);
 
+    parseContentTypeFromPath(pathBuffer, contentType);
     // construct http headers and get length of it
     size_t headerLength = constructHttpHeaders(responseBuffer, contentLength, contentType);
 
@@ -91,6 +91,7 @@ void handle_connection(int client_socket) {
 
     // send the responseBuffer to the socket
     send(client_socket, responseBuffer, headerLength + contentLength, 0);
+    printf("*********************** Response *****************************\n %s\n********************************************\n", responseBuffer);
     // close everything
     close(client_socket);
     printf("Connection close\n");
@@ -99,8 +100,8 @@ void handle_connection(int client_socket) {
 void parseContentTypeFromPath(char* path, char* contentType) {
     char extension[5] = {};
     char js[] = "text/javascript; charset=utf-8";
-    char html[] = "text/css; charset=utf-8";
-    char css[] = "text/html; charset=utf-8";
+    char html[] = "text/html; charset=utf-8";
+    char css[] = "text/css; charset=utf-8";
 
     for (int i = 0, j = 0; i < strlen(path); i++) {
         if (path[i] == '.') {
@@ -110,12 +111,14 @@ void parseContentTypeFromPath(char* path, char* contentType) {
             break;
         }
     }
-    if (strcmp(extension, "html")) {
+    if (!strcmp(extension, "js")) {
         strncpy(contentType, js, strlen(js));
-    } else if (strcmp(extension, "css")) {
+
+    } else if (!strcmp(extension, "css")) {
         strncpy(contentType, css, strlen(css));
-    } else if (strcmp(extension, "js")) {
-        strncpy(contentType, html, strlen(css));
+
+    } else if (!strcmp(extension, "html")) {
+        strncpy(contentType, html, strlen(html));
     }
     printf("Extension: %s\n", extension);
     printf("Content type: %s\n", contentType);
@@ -163,7 +166,7 @@ size_t constructHttpHeaders(char* contentBuffer, size_t contentLength, char* con
 
 void printRequest(int client_socket, char* requestBuffer) {
     checkErr(read(client_socket, requestBuffer, BUFSIZE), "Error on read request");
-    printf("%s", requestBuffer);
+    printf("*********************** REQUEST ***************************\n%s\n ********************************************\n", requestBuffer);
 }
 
 int checkErr(int exp, const char* msg) {

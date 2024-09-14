@@ -1,0 +1,157 @@
+:root {
+    --base: #191724;
+    --surface: #1f1d2e;
+    --overlay: #26233a;
+    --muted: #6e6a86;
+    --subtle: #908caa;
+    --text: #e0def4;
+    --love: #eb6f92;
+    --gold: #f6c177;
+    --rose: #ebbcba;
+    --pine: #31748f;
+    --foam: #9ccfd8;
+    --iris: #c4a7e7;
+    --highlight-low: #21202e;
+    --highlight-med: #403d52;
+    --highlight-high: #524f67;
+}
+
+/* General Styles */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: var(--base);
+    color: var(--text);
+}
+
+nav {
+    background-color: var(--surface);
+    color: var(--text);
+    padding: 0.5em 0;
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    text-align: center;
+}
+
+nav li {
+    display: inline;
+    margin: 0 1em;
+}
+
+nav a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+nav a.active, nav a:hover {
+    text-decoration: underline;
+}
+
+.content {
+    padding: 2em;
+    text-align: center;
+}
+
+h1 {
+    color: var(--text);
+}
+
+p {
+    color: var(--subtle);
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.7em 1.5em;
+    margin-top: 1em;
+    background-color: var(--love);
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.btn:hover {
+    background-color: var(--gold);
+}
+
+footer {
+    background-color: var(--surface);
+    color: var(--text);
+    text-align: center;
+    padding: 1em 0;
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+}
+
+/* Task Page Styles */
+.task-input {
+    margin: 2em 0;
+}
+
+#task-input {
+    width: 60%;
+    padding: 0.5em;
+    font-size: 1em;
+    background-color: var(--overlay);
+    color: var(--text);
+    border: 1px solid var(--muted);
+    border-radius: 8px;
+    margin-right: 2px;
+}
+
+
+#add-task-btn {
+    padding: 0.5em 1em;
+    font-size: 1em;
+    background-color: var(--love);
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+}
+
+#add-task-btn:hover {
+    background-color: var(--gold);
+}
+
+#task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#task-list li {
+    background-color: var(--surface);
+    margin-bottom: 0.5em;
+    padding: 1em;
+    border-radius: 5px;
+    position: relative;
+    text-align: left;
+    color: var(--text);
+}
+
+#task-list li.completed {
+    text-decoration: line-through;
+    color: var(--muted);
+}
+
+.delete-btn {
+    position: absolute;
+    right: 1em;
+    top: 1em;
+    background-color: transparent;
+    border: none;
+    font-size: 1.2em;
+    color: var(--love);
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    color: var(--gold);
+}

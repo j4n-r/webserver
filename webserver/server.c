@@ -30,6 +30,7 @@ int checkErr(int exp, const char* msg);
 void printRequest(int client_socker, char* requestBuffer);
 void getPathFromRequest(char* request, char* pathBuffer);
 size_t readFileData(char* contentBuffer, char* fullPath);
+void parseContentTypeFromPath(char* path, char* contentType);
 
 int main(int argc, char** argv) {
     int server_socket, client_socket, addr_size;
@@ -75,10 +76,10 @@ void handle_connection(int client_socket) {
 
     printRequest(client_socket, requestBuffer);
 
-    // TODO get file path from request (url)
+    //  get file path from request (url)
     getPathFromRequest(requestBuffer, pathBuffer);
 
-    // TODO get content from file
+    //  get content from file
     contentLength = readFileData(contentBuffer, pathBuffer);
     printf("Content Buffer: %s\nBytes read: %zu\n", contentBuffer, contentLength);
 
@@ -93,6 +94,31 @@ void handle_connection(int client_socket) {
     // close everything
     close(client_socket);
     printf("Connection close\n");
+}
+
+void parseContentTypeFromPath(char* path, char* contentType) {
+    char extension[5] = {};
+    char js[] = "text/javascript; charset=utf-8";
+    char html[] = "text/css; charset=utf-8";
+    char css[] = "text/html; charset=utf-8";
+
+    for (int i = 0, j = 0; i < strlen(path); i++) {
+        if (path[i] == '.') {
+            while (path[i] != '\0') {
+                extension[j++] = path[++i];
+            }
+            break;
+        }
+    }
+    if (strcmp(extension, "html")) {
+        strncpy(contentType, js, strlen(js));
+    } else if (strcmp(extension, "css")) {
+        strncpy(contentType, css, strlen(css));
+    } else if (strcmp(extension, "js")) {
+        strncpy(contentType, html, strlen(css));
+    }
+    printf("Extension: %s\n", extension);
+    printf("Content type: %s\n", contentType);
 }
 
 void getPathFromRequest(char* request, char* pathBuffer) {
@@ -141,7 +167,7 @@ void printRequest(int client_socket, char* requestBuffer) {
 }
 
 int checkErr(int exp, const char* msg) {
-    if (exp == -1) {
+    if (exp == SOCKETERROR) {
         perror(msg);
         exit(1);
     }

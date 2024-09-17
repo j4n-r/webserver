@@ -28,19 +28,18 @@ void handle_connection(int client_socket);
 size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, char* contentType);
 int checkErr(int exp, const char* msg);
 void printRequest(int client_socker, char* requestBuffer);
-void getPathFromRequest(char* request, char* pathBuffer);
+void getPathFromRequest(const char* request, char* pathBuffer);
 size_t readFileData(char* contentBuffer, char* fullPath);
 void parseContentTypeFromPath(char* path, char* contentType);
 
 int main(int argc, char** argv) {
-    int server_socket, client_socket, addr_size;
-    SA_IN server_addr, client_addr;
+    int server_socket = 0, client_socket = 0, addr_size = 0;
+    SA_IN server_addr = {}, client_addr = {};
 
     // make a new socket with ipv4 and tcp
     checkErr((server_socket = socket(AF_INET, SOCK_STREAM, 0)), "Failed to create socket");
 
     // zero out struct and fill declare family as ipv4, serverport INADDR_ANY ??
-    bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(SERVERPORT);
@@ -98,16 +97,17 @@ void handle_connection(int client_socket) {
 }
 
 void parseContentTypeFromPath(char* path, char* contentType) {
-    char extension[5] = {};
+    char extension[10] = {};
     char js[] = "text/javascript; charset=utf-8";
     char html[] = "text/html; charset=utf-8";
     char css[] = "text/css; charset=utf-8";
 
-    for (int i = 0, j = 0; i < strlen(path); i++) {
+    for (int i = 0, j = 0; (size_t)i < strlen(path); i++) {
         if (path[i] == '.') {
-            while (path[i] != '\0') {
+            while (path[i] != '\0' && j < 9) {
                 extension[j++] = path[++i];
             }
+            extension[j] = '\0';
             break;
         }
     }
@@ -124,20 +124,24 @@ void parseContentTypeFromPath(char* path, char* contentType) {
     printf("Content type: %s\n", contentType);
 }
 
-void getPathFromRequest(char* request, char* pathBuffer) {
+void getPathFromRequest(const char* request, char* pathBuffer) {
     char relativPathBuffer[PATHBUFSIZE] = {};
-    char relativPath[] = "frontend/";
-    memcpy(relativPathBuffer, relativPath, strnlen(relativPath, PATHBUFSIZE));
+    char* relativPath = "frontend/";
+    memcpy(relativPathBuffer, relativPath, strlen(relativPath));
 
     for (int i = 0, j = strlen(relativPathBuffer); i < PATHBUFSIZE; i++) {
         if (request[i] == '/') {
-            while (request[i] != ' ') {
+            while (request[i] != ' ' && j < BUFSIZE) {
                 relativPathBuffer[j++] = request[i++];
             }
             break;
         }
     }
-    realpath(relativPathBuffer, pathBuffer);
+    if (realpath(relativPathBuffer, pathBuffer) == NULL) {
+        perror("error resolving path");
+        exit(1);
+    }
+    // TODO add checking for wrong direcotry
     printf("Relativ path: %s\n", relativPathBuffer);
     printf("Full path: %s\n", pathBuffer);
 }
@@ -153,7 +157,8 @@ size_t readFileData(char* contentBuffer, char* fullPath) {
 size_t constructHttpHeaders(char* contentBuffer, size_t contentLength, char* contentType) {
     time_t now = time(NULL);
     char date[128];
-    strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now));
+    if (strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now)) == 0)
+        exit(1);
     snprintf(contentBuffer, HEADERBUFSIZE, "HTTP/1.1 200 OK\r\n"
                                            "Date: %s\r\n"
                                            "Content-Length: %zu\r\n"
@@ -161,11 +166,19 @@ size_t constructHttpHeaders(char* contentBuffer, size_t contentLength, char* con
                                            "Connection: keep-alive\r\n"
                                            "\r\n",
              date, contentLength, contentType);
+
     return strlen(contentBuffer);
 }
 
 void printRequest(int client_socket, char* requestBuffer) {
-    checkErr(read(client_socket, requestBuffer, BUFSIZE), "Error on read request");
+
+    size_t bytesRead = 0;
+    checkErr(bytesRead = read(client_socket, requestBuffer, BUFSIZE - 1), "Error on read request");
+    if (bytesRead > 0)
+        requestBuffer[bytesRead] = '\0';
+    else
+        requestBuffer[0] = '\0';
+
     printf("*********************** REQUEST ***************************\n%s\n ********************************************\n", requestBuffer);
 }
 

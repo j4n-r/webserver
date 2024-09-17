@@ -2,9 +2,11 @@
  * Thank you for the great videos https://youtube.com/@jacobsorber
  */
 #include <arpa/inet.h>
+#include <bits/pthreadtypes.h>
 #include <bits/types/struct_iovec.h>
 #include <limits.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,7 +26,7 @@
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
 
-void handle_connection(int client_socket);
+void* handle_connection(void* client_socket);
 size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, char* contentType);
 int checkErr(int exp, const char* msg);
 void printRequest(int client_socker, char* requestBuffer);
@@ -61,11 +63,17 @@ int main(int argc, char** argv) {
         checkErr(client_socket, "accept failed");
         printf("Connected!\n");
 
-        handle_connection(client_socket);
+        pthread_t newThread;
+        int* pClientSocket = malloc(sizeof(int));
+        *pClientSocket = client_socket;
+        pthread_create(&newThread, NULL, handle_connection, pClientSocket);
+        pthread_detach(newThread);
     }
 }
 
-void handle_connection(int client_socket) {
+void* handle_connection(void* pClientSocket) {
+    int client_socket = *((int*)pClientSocket);
+    free(pClientSocket);
     char responseBuffer[BUFSIZE + HEADERBUFSIZE] = {};
     char contentType[] = "text/html; charset=utf-8";
     char contentBuffer[BUFSIZE] = {};
@@ -94,6 +102,7 @@ void handle_connection(int client_socket) {
     // close everything
     close(client_socket);
     printf("Connection close\n");
+    return NULL;
 }
 
 void parseContentTypeFromPath(char* path, char* contentType) {

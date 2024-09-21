@@ -1,38 +1,6 @@
-/*
- * Thank you for the great videos https://youtube.com/@jacobsorber
- */
-#include <arpa/inet.h>
-#include <bits/pthreadtypes.h>
-#include <bits/types/struct_iovec.h>
-#include <limits.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
-#include <sys/socket.h>
-#include <time.h>
-#include <unistd.h>
-
-#define SERVERPORT 8080
-#define BUFSIZE 432768
-#define HEADERBUFSIZE 4096
-#define PATHBUFSIZE 4096
-#define SOCKETERROR (-1)
-#define SERVER_BACKLOG 1
-
-typedef struct sockaddr_in SA_IN;
-typedef struct sockaddr SA;
+#include "server.h"
 
 void* handle_connection(void* client_socket);
-size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, char* contentType);
-int checkErr(int exp, const char* msg);
-void printRequest(int client_socker, char* requestBuffer);
-void getPathFromRequest(const char* request, char* pathBuffer);
-size_t readFileData(char* contentBuffer, char* fullPath);
-void parseContentTypeFromPath(char* path, char* contentType);
 
 int main(int argc, char** argv) {
     int server_socket = 0, client_socket = 0, addr_size = 0;
@@ -87,7 +55,7 @@ void* handle_connection(void* pClientSocket) {
     getPathFromRequest(requestBuffer, pathBuffer);
 
     //  get content from file
-    contentLength = readFileData(contentBuffer, pathBuffer);
+    contentLength = readFile(contentBuffer, pathBuffer);
 
     parseContentTypeFromPath(pathBuffer, contentType);
     // construct http headers and get length of it
@@ -98,14 +66,14 @@ void* handle_connection(void* pClientSocket) {
 
     // send the responseBuffer to the socket
     send(client_socket, responseBuffer, headerLength + contentLength, 0);
-    printf("*********************** Response *****************************\n %s\n********************************************\n", responseBuffer);
+    /*printf("*********************** Response *****************************\n %s\n********************************************\n", responseBuffer);*/
     // close everything
     close(client_socket);
     printf("Connection close\n");
     return NULL;
 }
 
-void parseContentTypeFromPath(char* path, char* contentType) {
+void parseContentTypeFromPath(const char* path, char* contentType) {
     char extension[10] = {};
     char js[] = "text/javascript; charset=utf-8";
     char html[] = "text/html; charset=utf-8";
@@ -154,16 +122,8 @@ void getPathFromRequest(const char* request, char* pathBuffer) {
     printf("Relativ path: %s\n", relativPathBuffer);
     printf("Full path: %s\n", pathBuffer);
 }
-size_t readFileData(char* contentBuffer, char* fullPath) {
-    FILE* fp = fopen(fullPath, "r");
-    if (fp == NULL) {
-        perror("Error opening file");
-        exit(1);
-    }
-    return fread(contentBuffer, sizeof(char), BUFSIZE, fp);
-}
 
-size_t constructHttpHeaders(char* contentBuffer, size_t contentLength, char* contentType) {
+size_t constructHttpHeaders(char* contentBuffer, const size_t contentLength, const char* contentType) {
     time_t now = time(NULL);
     char date[128];
     if (strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now)) == 0)
@@ -177,24 +137,4 @@ size_t constructHttpHeaders(char* contentBuffer, size_t contentLength, char* con
              date, contentLength, contentType);
 
     return strlen(contentBuffer);
-}
-
-void printRequest(int client_socket, char* requestBuffer) {
-
-    size_t bytesRead = 0;
-    checkErr(bytesRead = read(client_socket, requestBuffer, BUFSIZE - 1), "Error on read request");
-    if (bytesRead > 0)
-        requestBuffer[bytesRead] = '\0';
-    else
-        requestBuffer[0] = '\0';
-
-    printf("*********************** REQUEST ***************************\n%s\n ********************************************\n", requestBuffer);
-}
-
-int checkErr(int exp, const char* msg) {
-    if (exp == SOCKETERROR) {
-        perror(msg);
-        exit(1);
-    }
-    return exp;
 }

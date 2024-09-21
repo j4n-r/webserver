@@ -40,6 +40,19 @@ function addTask() {
 
   // Clear input
   taskInput.value = "";
+  addTaskToDB();
+}
+
+function addTaskToDB(taskText) {
+  fetch("tasks.html", {
+    method: "POST",
+    body: JSON.stringify({
+      task: taskText,
+    }),
+    headers: {
+      "Content-type": "application/json; charset=UTF-8",
+    },
+  });
 }
 
 // Function to toggle task completion

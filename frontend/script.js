@@ -40,17 +40,15 @@ function addTask() {
 
   // Clear input
   taskInput.value = "";
-  addTaskToDB();
+  addTaskToDB(taskText);
 }
 
 function addTaskToDB(taskText) {
   fetch("tasks.html", {
     method: "POST",
-    body: JSON.stringify({
-      task: taskText,
-    }),
+    body: `{${taskText}}`,
     headers: {
-      "Content-type": "application/json; charset=UTF-8",
+      "Content-type": "application/text; charset=UTF-8",
     },
   });
 }

@@ -31,9 +31,11 @@ typedef struct sockaddr SA;
 
 int checkErr(const int exp,const char* msg);
 size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, const char* contentType);
-void printRequest(const int client_socket, char* requestBuffer);
+void readAndPrintRequest(const int client_socket, char* requestBuffer);
 void getPathFromRequest(const char* request, char* pathBuffer);
 size_t readFile(char* contentBuffer, const char* fullPath);
 void parseContentTypeFromPath(const char* path, char* contentType);
+size_t parseRequestBody(char* requestBuffer, char bodyContent[BUFSIZE]);
+size_t writeFile(char contentBuffer[BUFSIZE], const char* fullPath);
 
 #endif  // SERVER_H

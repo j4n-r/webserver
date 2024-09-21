@@ -1,4 +1,6 @@
 #include "server.h"
+#include <stdio.h>
+#include <string.h>
 
 void* handle_connection(void* client_socket);
 
@@ -47,15 +49,28 @@ void* handle_connection(void* pClientSocket) {
     char contentBuffer[BUFSIZE] = {};
     size_t contentLength = 0;
     char requestBuffer[BUFSIZE] = {};
+    char requestBodyBuffer[BUFSIZE] = {};
     char pathBuffer[PATHBUFSIZE] = {};
 
-    printRequest(client_socket, requestBuffer);
+    readAndPrintRequest(client_socket, requestBuffer);
 
     //  get file path from request (url)
     getPathFromRequest(requestBuffer, pathBuffer);
 
     //  get content from file
     contentLength = readFile(contentBuffer, pathBuffer);
+
+    // change this implementaition to something more structered
+    if (requestBuffer[0] == 'P' && strcmp(pathBuffer, "index.html")) {
+        char bodyContent[BUFSIZE];
+        char tempBuf[BUFSIZE];
+
+        parseRequestBody(requestBuffer, bodyContent);
+        sprintf(tempBuf, "- [ ] %s\n", bodyContent);
+
+        strcpy(bodyContent, tempBuf);
+        writeFile(bodyContent, "webserver/database.txt");
+    }
 
     parseContentTypeFromPath(pathBuffer, contentType);
     // construct http headers and get length of it
@@ -71,70 +86,4 @@ void* handle_connection(void* pClientSocket) {
     close(client_socket);
     printf("Connection close\n");
     return NULL;
-}
-
-void parseContentTypeFromPath(const char* path, char* contentType) {
-    char extension[10] = {};
-    char js[] = "text/javascript; charset=utf-8";
-    char html[] = "text/html; charset=utf-8";
-    char css[] = "text/css; charset=utf-8";
-
-    for (int i = 0, j = 0; (size_t)i < strlen(path); i++) {
-        if (path[i] == '.') {
-            while (path[i] != '\0' && j < 9) {
-                extension[j++] = path[++i];
-            }
-            extension[j] = '\0';
-            break;
-        }
-    }
-    if (!strcmp(extension, "js")) {
-        strncpy(contentType, js, strlen(js));
-
-    } else if (!strcmp(extension, "css")) {
-        strncpy(contentType, css, strlen(css));
-
-    } else if (!strcmp(extension, "html")) {
-        strncpy(contentType, html, strlen(html));
-    }
-    printf("Extension: %s\n", extension);
-    printf("Content type: %s\n", contentType);
-}
-
-void getPathFromRequest(const char* request, char* pathBuffer) {
-    char relativPathBuffer[PATHBUFSIZE] = {};
-    char* relativPath = "frontend/";
-    memcpy(relativPathBuffer, relativPath, strlen(relativPath));
-
-    for (int i = 0, j = strlen(relativPathBuffer); i < PATHBUFSIZE; i++) {
-        if (request[i] == '/') {
-            while (request[i] != ' ' && j < BUFSIZE) {
-                relativPathBuffer[j++] = request[i++];
-            }
-            break;
-        }
-    }
-    if (realpath(relativPathBuffer, pathBuffer) == NULL) {
-        perror("error resolving path");
-        exit(1);
-    }
-    // TODO add checking for wrong direcotry
-    printf("Relativ path: %s\n", relativPathBuffer);
-    printf("Full path: %s\n", pathBuffer);
-}
-
-size_t constructHttpHeaders(char* contentBuffer, const size_t contentLength, const char* contentType) {
-    time_t now = time(NULL);
-    char date[128];
-    if (strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now)) == 0)
-        exit(1);
-    snprintf(contentBuffer, HEADERBUFSIZE, "HTTP/1.1 200 OK\r\n"
-                                           "Date: %s\r\n"
-                                           "Content-Length: %zu\r\n"
-                                           "Content-Type: %s\r\n"
-                                           "Connection: keep-alive\r\n"
-                                           "\r\n",
-             date, contentLength, contentType);
-
-    return strlen(contentBuffer);
 }

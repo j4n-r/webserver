@@ -9,9 +9,11 @@ taskInput.addEventListener("keydown", (event) => {
     event.key == "Enter" ? addTask() : "";
 });
 
+body.addEventListener("DOMConetenLoaded", loadTasks);
+
 // Function to add a task
-function addTask() {
-    const taskText = taskInput.value.trim();
+function addTask(task) {
+    const taskText = task ?? taskInput.value.trim();
     if (taskText === "") {
         alert("Please enter a task.");
         return;
@@ -47,7 +49,7 @@ function addTask() {
 }
 
 function addTaskToDB(taskText) {
-    fetch("tasks.html", {
+    fetch("tasks", {
         method: "POST",
         body: `{${taskText}}`,
         headers: {
@@ -70,4 +72,12 @@ function toggleTask() {
 function deleteTask() {
     const li = this.parentElement;
     taskList.removeChild(li);
+}
+
+async function loadTasks() {
+    let tasks = await fetch("tasks", {
+        method: "GET"
+    })
+    tasks = tasks.split(" ; ");
+    tasks.forEach(task => addTask(task));
 }

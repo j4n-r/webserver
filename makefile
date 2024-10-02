@@ -1,20 +1,41 @@
+# Compiler and flags
 CC = gcc
 CFLAGS = -Wall -Wextra -g
+LDFLAGS = -lm  # Add linker flags here if needed
 
-server: server.o utils.o endpoints.o
-	$(CC) $(CFLAGS) webserver/out/server.o webserver/out/utils.o webserver/out/endpoints.o -o webserver/server 
+# Directories
+SRCDIR = webserver
+OUTDIR = $(SRCDIR)/out
 
-server.o: webserver/server.c
-	$(CC) $(CFLAGS) -c webserver/server.c -o webserver/out/server.o
+# Source files and corresponding object files
+SOURCES = $(SRCDIR)/server.c $(SRCDIR)/utils.c
+OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OUTDIR)/%.o,$(SOURCES))
 
-utils.o: webserver/utils.c
-	$(CC) $(CFLAGS) -c webserver/utils.c -o webserver/out/utils.o
+# Target executable
+TARGET = $(SRCDIR)/server
 
-endpoints.o: webserver/endpoints.c
-	$(CC) $(CFLAGS) -c webserver/endpoints.c -o webserver/out/endpoints.o
-run: 
-	./webserver/server
+# Default rule
+all: $(TARGET)
 
+# Linking the executable
+$(TARGET): $(OBJECTS)
+	$(CC) $(CFLAGS) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
+
+# Compiling source files to object files
+$(OUTDIR)/%.o: $(SRCDIR)/%.c | $(OUTDIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Ensure output directory exists
+$(OUTDIR):
+	mkdir -p $(OUTDIR)
+
+# Clean up build artifacts
 clean:
-	rm -f webserver/server.o webserver/server webserver/utils.o 
+	rm -f $(OBJECTS) $(TARGET)
 
+# Run the server
+run: $(TARGET)
+	./$(TARGET)
+
+# Phony targets
+.PHONY: all clean run

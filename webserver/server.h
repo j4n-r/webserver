@@ -29,7 +29,9 @@
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
 
+// if exp == -1 , print error message and qui programm 
 int checkErr(const int exp,const char* msg);
+// puts the headers in the  
 size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, const char* contentType);
 void readAndPrintRequest(const int client_socket, char* requestBuffer);
 void getPathFromRequest(const char* request, char* pathBuffer);
@@ -37,5 +39,5 @@ size_t readFile(char* contentBuffer, const char* fullPath);
 void parseContentTypeFromPath(const char* path, char* contentType);
 size_t parseRequestBody(char* requestBuffer, char bodyContent[BUFSIZE]);
 size_t writeFile(char contentBuffer[BUFSIZE], const char* fullPath);
-
+int routeRequest(char requestBuffer[BUFSIZE], char pathBuffer[BUFSIZE], char contentBuffer[BUFSIZE]);
 #endif  // SERVER_H

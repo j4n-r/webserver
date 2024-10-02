@@ -3,8 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 
-size_t readFile(char* contentBuffer, const char* fullPath) {
-    FILE* fp = fopen(fullPath, "r");
+size_t readFile(char *contentBuffer, const char *fullPath) {
+    FILE *fp = fopen(fullPath, "r");
     if (fp == NULL) {
         perror("Error opening file");
         exit(1);
@@ -14,8 +14,8 @@ size_t readFile(char* contentBuffer, const char* fullPath) {
     return bytesRead;
 }
 
-size_t writeFile(char contentBuffer[BUFSIZE], const char* fullPath) {
-    FILE* fp = fopen(fullPath, "a");
+size_t writeFile(char contentBuffer[BUFSIZE], const char *fullPath) {
+    FILE *fp = fopen(fullPath, "a");
     if (fp == NULL) {
         perror("Error opening file");
         exit(1);
@@ -26,7 +26,7 @@ size_t writeFile(char contentBuffer[BUFSIZE], const char* fullPath) {
     return bytesRead;
 }
 
-void readAndPrintRequest(const int client_socket, char* requestBuffer) {
+void readAndPrintRequest(const int client_socket, char *requestBuffer) {
 
     size_t bytesRead = 0;
     checkErr(bytesRead = read(client_socket, requestBuffer, BUFSIZE - 1), "Error on read request");
@@ -38,7 +38,7 @@ void readAndPrintRequest(const int client_socket, char* requestBuffer) {
     printf("*********************** REQUEST ***************************\n%s\n ********************************************\n", requestBuffer);
 }
 
-int checkErr(int exp, const char* msg) {
+int checkErr(int exp, const char *msg) {
     if (exp == SOCKETERROR) {
         perror(msg);
         exit(1);
@@ -46,7 +46,7 @@ int checkErr(int exp, const char* msg) {
     return exp;
 }
 
-void parseContentTypeFromPath(const char* path, char* contentType) {
+void parseContentTypeFromPath(const char *path, char *contentType) {
     char extension[10] = {};
     char js[] = "text/javascript; charset=utf-8";
     char html[] = "text/html; charset=utf-8";
@@ -74,9 +74,9 @@ void parseContentTypeFromPath(const char* path, char* contentType) {
     printf("Content type: %s\n", contentType);
 }
 
-void getPathFromRequest(const char* request, char* pathBuffer) {
+void getPathFromRequest(const char *request, char *pathBuffer) {
     char relativPathBuffer[PATHBUFSIZE] = {};
-    char* relativPath = "frontend/";
+    char *relativPath = "frontend/";
     memcpy(relativPathBuffer, relativPath, strlen(relativPath));
 
     for (int i = 0, j = strlen(relativPathBuffer); i < PATHBUFSIZE; i++) {
@@ -96,7 +96,7 @@ void getPathFromRequest(const char* request, char* pathBuffer) {
     printf("Full path: %s\n", pathBuffer);
 }
 
-size_t constructHttpHeaders(char* contentBuffer, const size_t contentLength, const char* contentType) {
+size_t constructHttpHeaders(char *contentBuffer, const size_t contentLength, const char *contentType) {
     time_t now = time(NULL);
     char date[128];
     if (strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now)) == 0)
@@ -112,9 +112,9 @@ size_t constructHttpHeaders(char* contentBuffer, const size_t contentLength, con
     return strlen(contentBuffer);
 }
 
-size_t parseRequestBody(char* requestBuffer, char bodyContent[BUFSIZE]) {
-    char* bodyStart = strstr(requestBuffer, "{");
-    char* bodyEnd = strstr(requestBuffer, "}");
+size_t parseRequestBody(char *requestBuffer, char bodyContent[BUFSIZE]) {
+    char *bodyStart = strstr(requestBuffer, "{");
+    char *bodyEnd = strstr(requestBuffer, "}");
     if (bodyStart == NULL || bodyEnd == NULL) {
         printf("No body found");
         return (size_t)NULL;

@@ -3,8 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 
-size_t readFile(char *contentBuffer, const char *fullPath) {
-    FILE *fp = fopen(fullPath, "r");
+size_t readFile(char* contentBuffer, const char* fullPath) {
+    FILE* fp = fopen(fullPath, "r");
     if (fp == NULL) {
         perror("Error opening file");
         exit(1);
@@ -14,8 +14,8 @@ size_t readFile(char *contentBuffer, const char *fullPath) {
     return bytesRead;
 }
 
-size_t writeFile(char contentBuffer[BUFSIZE], const char *fullPath) {
-    FILE *fp = fopen(fullPath, "a");
+size_t writeFile(char contentBuffer[BUFSIZE], const char* fullPath) {
+    FILE* fp = fopen(fullPath, "a");
     if (fp == NULL) {
         perror("Error opening file");
         exit(1);
@@ -26,19 +26,19 @@ size_t writeFile(char contentBuffer[BUFSIZE], const char *fullPath) {
     return bytesRead;
 }
 
-void readAndPrintRequest(const int client_socket, char *requestBuffer) {
+size_t getRequest(httpM* request, const int client_socket) {
 
     size_t bytesRead = 0;
-    checkErr(bytesRead = read(client_socket, requestBuffer, BUFSIZE - 1), "Error on read request");
+    checkErr(bytesRead = read(client_socket, request->message, BUFSIZE - 1),
+             "Error on read request");
     if (bytesRead > 0)
-        requestBuffer[bytesRead] = '\0';
+        request->message[bytesRead] = '\0';
     else
-        requestBuffer[0] = '\0';
-
-    printf("*********************** REQUEST ***************************\n%s\n ********************************************\n", requestBuffer);
+        request->message[0] = '\0';
+    return bytesRead;
 }
 
-int checkErr(int exp, const char *msg) {
+int checkErr(int exp, const char* msg) {
     if (exp == SOCKETERROR) {
         perror(msg);
         exit(1);
@@ -46,7 +46,7 @@ int checkErr(int exp, const char *msg) {
     return exp;
 }
 
-void parseContentTypeFromPath(const char *path, char *contentType) {
+void parseContentTypeFromPath(const char* path, char* contentType) {
     char extension[10] = {};
     char js[] = "text/javascript; charset=utf-8";
     char html[] = "text/html; charset=utf-8";
@@ -74,57 +74,89 @@ void parseContentTypeFromPath(const char *path, char *contentType) {
     printf("Content type: %s\n", contentType);
 }
 
-void getPathFromRequest(const char *request, char *pathBuffer) {
-    char relativPathBuffer[PATHBUFSIZE] = {};
-    char *relativPath = "frontend/";
-    memcpy(relativPathBuffer, relativPath, strlen(relativPath));
+int getPathFromRequest(httpM* request) {
+    char* dir = "frontend";
+    char relativePath[PATHBUFSIZE] = {};
+    strncpy(relativePath, dir, strlen(dir));
 
-    for (int i = 0, j = strlen(relativPathBuffer); i < PATHBUFSIZE; i++) {
-        if (request[i] == '/') {
-            while (request[i] != ' ' && j < BUFSIZE) {
-                relativPathBuffer[j++] = request[i++];
+    for (int i = 0, j = strlen(dir); i < PATHBUFSIZE; i++) {
+        if (request->message[i] == '/') {
+            while (request->message[i] != ' ' && j < PATHBUFSIZE) {
+                relativePath[j++] = request->message[i++];
             }
             break;
         }
+        relativePath[strlen(relativePath) + 1] = '0';
     }
-    if (realpath(relativPathBuffer, pathBuffer) == NULL) {
-        perror("error resolving path");
-        exit(1);
+    if (realpath(relativePath, request->path) == NULL) {
+        perror("Error resolving path");
+        return -1;
     }
-    // TODO add checking for wrong direcotry
-    printf("Relativ path: %s\n", relativPathBuffer);
-    printf("Full path: %s\n", pathBuffer);
+    return 1;
 }
 
-size_t constructHttpHeaders(char *contentBuffer, const size_t contentLength, const char *contentType) {
+size_t constructHttpHeaders(char* contentBuffer, const size_t contentLength,
+                            const char* contentType) {
     time_t now = time(NULL);
     char date[128];
-    if (strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now)) == 0)
+    if (strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT",
+                 gmtime(&now)) == 0)
         exit(1);
-    snprintf(contentBuffer, HEADERBUFSIZE, "HTTP/1.1 200 OK\r\n"
-                                           "Date: %s\r\n"
-                                           "Content-Length: %zu\r\n"
-                                           "Content-Type: %s\r\n"
-                                           "Connection: keep-alive\r\n"
-                                           "\r\n",
+    snprintf(contentBuffer, HEADERBUFSIZE,
+             "HTTP/1.1 200 OK\r\n"
+             "Date: %s\r\n"
+             "Content-Length: %zu\r\n"
+             "Content-Type: %s\r\n"
+             "Connection: keep-alive\r\n"
+             "\r\n",
              date, contentLength, contentType);
 
     return strlen(contentBuffer);
 }
 
-size_t parseRequestBody(char *requestBuffer, char bodyContent[BUFSIZE]) {
-    char *bodyStart = strstr(requestBuffer, "{");
-    char *bodyEnd = strstr(requestBuffer, "}");
+size_t parseRequestBody(httpM* request) {
+    char* bodyStart = strstr(request->message, "{");
+    char* bodyEnd = strstr(request->message, "}");
     if (bodyStart == NULL || bodyEnd == NULL) {
         printf("No body found");
         return (size_t)NULL;
     } else {
 
-        char content[BUFSIZE] = {};
         for (int i = 0; bodyStart != bodyEnd - 1 || i == BUFSIZE; i++) {
-            content[i] = *++bodyStart;
+            request->body[i] = *++bodyStart;
         }
-        strcpy(bodyContent, content);
-        return strlen(bodyContent);
+        return strlen(request->body);
     }
+}
+
+int getRequestMethod(httpM* request) {
+
+    if (request->message[0] == 'G') {
+        request->method = 0;
+    } else if (request->message[0] == 'P') {
+        request->method = 1;
+    } else {
+        return -1;
+    }
+
+    return 1;
+}
+
+void printHttpMessage(const httpM* m) {
+    printf("############################## START REQUEST "
+           "#################################################\n"
+           "Method: %d\n"
+           "Headers:\n"
+           "Status: %s\n"
+           "ContentLength: %d\n"
+           "ContentType: %s\n"
+           "Date: %s\n"
+           "Path: %s\n"
+           "body:\n%s\n"
+           "message:\n%s\n"
+           "############################## END REQUEST "
+           "########################################## \n",
+           m->method, m->headers->status, m->headers->contentLength,
+           m->headers->contentType, m->headers->date, m->path, m->body,
+           m->message);
 }

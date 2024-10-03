@@ -1,14 +1,23 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -g
-LDFLAGS = -lm  # Add linker flags here if needed
-
+# remove -Wpedantic for {} empty initializer
+CFLAGS += -Wall -Wextra - \
+          -Wformat=2 -Wno-unused-parameter -Wshadow \
+          -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
+          -Wredundant-decls -Wnested-externs -Wmissing-include-dirs
+# Add linker flags here if needed
+LDFLAGS = -lm  
 # Directories
+# GCC warnings that Clang doesn't provide:
+ifeq ($(CC),gcc)
+    CFLAGS += -Wjump-misses-init -Wlogical-op
+endif
+
 SRCDIR = webserver
 OUTDIR = $(SRCDIR)/out
 
 # Source files and corresponding object files
-SOURCES = $(SRCDIR)/server.c $(SRCDIR)/utils.c
+SOURCES = $(SRCDIR)/server.c $(SRCDIR)/utils.c $(SRCDIR)/endpoints.c
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OUTDIR)/%.o,$(SOURCES))
 
 # Target executable

@@ -1,33 +1,30 @@
 #include "server.h"
 
-int indexRoute(char requestBuffer[BUFSIZE], char pathBuffer[BUFSIZE], char contentBuffer[BUFSIZE]);
+int indexRoute(httpM* response, httpM* request);
 // i am going to make this easy and won't write a json parse so it will be just
 // {taskname}
-void tasks_post(char *contentBuffer, char *fullPath) {}
+void tasks_post(char* contentBuffer, char* fullPath) {}
 
-int routeRequest(char requestBuffer[BUFSIZE], char pathBuffer[BUFSIZE], char contentBuffer[BUFSIZE]) {
+int routeRequest(httpM* response, httpM* request) {
 
-    if (strcmp(pathBuffer, "index.html")) {
-        return indexRoute(requestBuffer, pathBuffer, contentBuffer);
+    if (strcmp(request->path, "index.html")) {
+        return indexRoute(response, request);
     }
     return 0;
 }
 
-int indexRoute(char requestBuffer[BUFSIZE], char pathBuffer[BUFSIZE], char contentBuffer[BUFSIZE]) {
-    if (requestBuffer[0] == 'P') {
-        char bodyContent[BUFSIZE];
-        char tempBuf[BUFSIZE];
-        int contentLength = readFile(contentBuffer, pathBuffer);
-        parseRequestBody(requestBuffer, bodyContent);
-        sprintf(tempBuf, "- [ ] %s\n", bodyContent);
+int indexRoute(httpM* response, httpM* request) {
+    char tmp[BUFSIZE];
+    if (request->method == 1) {
+        int contentLength = readFile(response->body, request->path);
+        sprintf(tmp, "- [ ] %s\n", response->body);
 
-        strcpy(bodyContent, tempBuf);
-        writeFile(bodyContent, "webserver/database.txt");
+        strcpy(response->body, tmp);
+        writeFile(response->body, "webserver/database.txt");
         return contentLength;
     }
-    if (requestBuffer[0] == 'G') {
-        int contentLength = readFile(contentBuffer, pathBuffer);
-        parseRequestBody(requestBuffer, contentBuffer);
+    if (request->method == 0) {
+        int contentLength = readFile(response->body, request->path);
         return contentLength;
     }
 

@@ -26,18 +26,42 @@
 #define SOCKETERROR (-1)
 #define SERVER_BACKLOG 1
 
+
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
+
+typedef enum requestMethod {
+    GET = 0,
+    POST = 1,
+    ERROR = -1,
+} method;
+
+typedef struct httpHeaders {
+    char status[50];
+    int contentLength;
+    char contentType[50];
+    char date[50];
+} httpH;
+
+typedef struct httpMessage {
+    method method;
+    httpH* headers;
+    char path[PATHBUFSIZE];
+    char body[BUFSIZE];
+    char message[HEADERBUFSIZE + BUFSIZE];
+} httpM;
 
 // if exp == -1 , print error message and qui programm 
 int checkErr(const int exp,const char* msg);
 // puts the headers in the  
 size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, const char* contentType);
-void readAndPrintRequest(const int client_socket, char* requestBuffer);
-void getPathFromRequest(const char* request, char* pathBuffer);
+size_t getRequest(httpM *request,const int client_socket );
+int getPathFromRequest(httpM *request);
 size_t readFile(char* contentBuffer, const char* fullPath);
 void parseContentTypeFromPath(const char* path, char* contentType);
-size_t parseRequestBody(char* requestBuffer, char bodyContent[BUFSIZE]);
+size_t parseRequestBody(httpM* request);
 size_t writeFile(char contentBuffer[BUFSIZE], const char* fullPath);
-int routeRequest(char requestBuffer[BUFSIZE], char pathBuffer[BUFSIZE], char contentBuffer[BUFSIZE]);
+int routeRequest(httpM * response, httpM * request);
+int getRequestMethod(httpM* request);
+void printHttpMessage(const httpM* m);
 #endif  // SERVER_H

@@ -1,32 +1,43 @@
 #include "server.h"
 
-int indexRoute(httpM* response, httpM* request);
+int handleGetRequest(httpM* response, httpM* request);
+int tasksPost(httpM* response, httpM* request);
 // i am going to make this easy and won't write a json parse so it will be just
 // {taskname}
-void tasks_post(char* contentBuffer, char* fullPath) {}
 
 int routeRequest(httpM* response, httpM* request) {
 
-    if (strcmp(request->path, "index.html")) {
-        return indexRoute(response, request);
+    // handle GET
+    if (request->method == 0) {
+        handleGetRequest(response, request);
+        // handle POST
+    } else if (request->method == 1) {
+        if (strcmp(request->path, "tasks")) {
+            return tasksPost(response, request);
+        }
     }
+
     return 0;
 }
 
-int indexRoute(httpM* response, httpM* request) {
+int tasksPost(httpM* response, httpM* request) {
     char tmp[BUFSIZE];
-    if (request->method == 1) {
-        int contentLength = readFile(response->body, request->path);
-        sprintf(tmp, "- [ ] %s\n", response->body);
+    snprintf(tmp, BUFSIZE - 8, "- [ ] %s\n", request->body);
 
-        strcpy(response->body, tmp);
-        writeFile(response->body, "webserver/database.txt");
-        return contentLength;
-    }
-    if (request->method == 0) {
-        int contentLength = readFile(response->body, request->path);
-        return contentLength;
-    }
-
+    strcpy(request->body, tmp);
+    writeFile(request->body, "webserver/database.txt");
     return 0;
+}
+
+int handleGetRequest(httpM* response, httpM* request) {
+    // read file into body
+    response->headers->contentLength = readFile(response->body, request->path);
+    // getContentType
+    parseContentTypeFromPath(response, request);
+    // construct httpHeaders
+    constructHttpHeaders(response, request);
+    // copy body into message, headers should already be there
+    strncat(response->message, response->body, BUFSIZE + HEADERBUFSIZE);
+
+    return 1;
 }

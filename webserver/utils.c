@@ -7,7 +7,7 @@ size_t readFile(char* contentBuffer, const char* fullPath) {
     FILE* fp = fopen(fullPath, "r");
     if (fp == NULL) {
         perror("Error opening file");
-        exit(1);
+        return 0;
     }
     size_t bytesRead = fread(contentBuffer, sizeof(char), BUFSIZE, fp);
     fclose(fp);
@@ -18,7 +18,7 @@ size_t writeFile(char contentBuffer[BUFSIZE], const char* fullPath) {
     FILE* fp = fopen(fullPath, "a");
     if (fp == NULL) {
         perror("Error opening file");
-        exit(1);
+        return 0;
     }
     size_t contentLength = strlen(contentBuffer);
     size_t bytesRead = fwrite(contentBuffer, sizeof(char), contentLength, fp);
@@ -46,36 +46,42 @@ int checkErr(int exp, const char* msg) {
     return exp;
 }
 
-void parseContentTypeFromPath(const char* path, char* contentType) {
+int parseContentTypeFromPath(httpM* response, httpM* request) {
     char extension[10] = {};
     char js[] = "text/javascript; charset=utf-8";
     char html[] = "text/html; charset=utf-8";
     char css[] = "text/css; charset=utf-8";
+    char icon[] = "image/x-icon";
 
-    for (int i = 0, j = 0; (size_t)i < strlen(path); i++) {
-        if (path[i] == '.') {
-            while (path[i] != '\0' && j < 9) {
-                extension[j++] = path[++i];
+    for (int i = 0, j = 0; (size_t)i < strlen(request->path); i++) {
+        if (request->path[i] == '.') {
+            while (request->path[i] != '\0' && j < 9) {
+                extension[j++] = request->path[++i];
             }
             extension[j] = '\0';
             break;
         }
     }
     if (!strcmp(extension, "js")) {
-        strncpy(contentType, js, strlen(js));
+        strncpy(response->headers->contentType, js, strlen(js));
+        return 1;
 
     } else if (!strcmp(extension, "css")) {
-        strncpy(contentType, css, strlen(css));
+        strncpy(response->headers->contentType, css, strlen(css));
+        return 1;
 
     } else if (!strcmp(extension, "html")) {
-        strncpy(contentType, html, strlen(html));
+        strncpy(response->headers->contentType, html, strlen(html));
+        return 1;
+    } else if (!strcmp(extension, "ico")) {
+        strncpy(response->headers->contentType, html, strlen(icon));
+        return 1;
     }
-    printf("Extension: %s\n", extension);
-    printf("Content type: %s\n", contentType);
+    return 0;
 }
 
 int getPathFromRequest(httpM* request) {
-    char* dir = "frontend";
+    const char* dir = "frontend";
     char relativePath[PATHBUFSIZE] = {};
     strncpy(relativePath, dir, strlen(dir));
 
@@ -95,23 +101,23 @@ int getPathFromRequest(httpM* request) {
     return 1;
 }
 
-size_t constructHttpHeaders(char* contentBuffer, const size_t contentLength,
-                            const char* contentType) {
+size_t constructHttpHeaders(httpM* response, httpM* request) {
     time_t now = time(NULL);
-    char date[128];
-    if (strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT",
-                 gmtime(&now)) == 0)
+    if (strftime(response->headers->date, sizeof(response->headers->date),
+                 "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now)) == 0) {
         exit(1);
-    snprintf(contentBuffer, HEADERBUFSIZE,
+    }
+    snprintf(response->message, HEADERBUFSIZE,
              "HTTP/1.1 200 OK\r\n"
              "Date: %s\r\n"
-             "Content-Length: %zu\r\n"
+             "Content-Length: %d\r\n"
              "Content-Type: %s\r\n"
              "Connection: keep-alive\r\n"
              "\r\n",
-             date, contentLength, contentType);
+             response->headers->date, response->headers->contentLength,
+             response->headers->contentType);
 
-    return strlen(contentBuffer);
+    return strlen(response->message);
 }
 
 size_t parseRequestBody(httpM* request) {
@@ -142,7 +148,7 @@ int getRequestMethod(httpM* request) {
     return 1;
 }
 
-void printHttpMessage(const httpM* m) {
+void printHttpRequest(const httpM* m) {
     printf("############################## START REQUEST "
            "#################################################\n"
            "Method: %d\n"
@@ -152,9 +158,27 @@ void printHttpMessage(const httpM* m) {
            "ContentType: %s\n"
            "Date: %s\n"
            "Path: %s\n"
-           "body:\n%s\n"
+           "body: %s\n"
            "message:\n%s\n"
            "############################## END REQUEST "
+           "########################################## \n",
+           m->method, m->headers->status, m->headers->contentLength,
+           m->headers->contentType, m->headers->date, m->path, m->body,
+           m->message);
+}
+void printHttpResponse(const httpM* m) {
+    printf("############################## START RESPONSE "
+           "#################################################\n"
+           "Method: %d\n"
+           "Headers:\n"
+           "Status: %s\n"
+           "ContentLength: %d\n"
+           "ContentType: %s\n"
+           "Date: %s\n"
+           "Path: %s\n"
+           "body: %s\n"
+           "message:\n%s\n"
+           "############################## END RESPONSE "
            "########################################## \n",
            m->method, m->headers->status, m->headers->contentLength,
            m->headers->contentType, m->headers->date, m->path, m->body,

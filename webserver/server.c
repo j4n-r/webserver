@@ -63,10 +63,12 @@ void* handle_connection(void* pClientSocket) {
     // fill in request
     checkErr(handleRequest(&request, client_socket), "Handling request failed");
 
+    printHttpRequest(&request);
     // fill in the response based on the tyupe of request and path
     handleResponse(&response, &request);
 
     // send response
+    send(client_socket, response.message, strlen(response.message), 0);
 
     // close everything
     close(client_socket);
@@ -78,12 +80,12 @@ int handleRequest(httpM* request, const int socket) {
     // copy request into request
     if (!(getRequest(request, socket) > 0)) {
         printf("Empty request");
-        return -1;
+        return 0;
     }
     // extract path from request
     getPathFromRequest(request);
     checkErr(getRequestMethod(request), "invalid request");
-    printHttpMessage(request);
+    printHttpRequest(request);
     parseRequestBody(request);
     return 1;
 }
@@ -91,5 +93,6 @@ int handleRequest(httpM* request, const int socket) {
 int handleResponse(httpM* response, httpM* request) {
     // fills in the response body
     routeRequest(response, request);
+    printHttpResponse(response);
     return 1;
 }

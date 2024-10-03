@@ -20,12 +20,11 @@
 #include <unistd.h>
 
 #define SERVERPORT 8080
-#define BUFSIZE 432768
+#define BUFSIZE 43276
 #define HEADERBUFSIZE 4096
 #define PATHBUFSIZE 4096
 #define SOCKETERROR (-1)
 #define SERVER_BACKLOG 1
-
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
@@ -51,17 +50,18 @@ typedef struct httpMessage {
     char message[HEADERBUFSIZE + BUFSIZE];
 } httpM;
 
-// if exp == -1 , print error message and qui programm 
-int checkErr(const int exp,const char* msg);
-// puts the headers in the  
-size_t constructHttpHeaders(char* headerBuffer, size_t contentLength, const char* contentType);
-size_t getRequest(httpM *request,const int client_socket );
-int getPathFromRequest(httpM *request);
+// if exp == -1 , print error message and qui programm
+int checkErr(const int exp, const char* msg);
+// puts the headers in the
+size_t constructHttpHeaders(httpM* response, httpM* request);
+size_t getRequest(httpM* request, const int client_socket);
+int getPathFromRequest(httpM* request);
 size_t readFile(char* contentBuffer, const char* fullPath);
-void parseContentTypeFromPath(const char* path, char* contentType);
+int parseContentTypeFromPath(httpM* response, httpM* request);
 size_t parseRequestBody(httpM* request);
 size_t writeFile(char contentBuffer[BUFSIZE], const char* fullPath);
-int routeRequest(httpM * response, httpM * request);
+int routeRequest(httpM* response, httpM* request);
 int getRequestMethod(httpM* request);
-void printHttpMessage(const httpM* m);
-#endif  // SERVER_H
+void printHttpRequest(const httpM* m);
+void printHttpResponse(const httpM* m);
+#endif // SERVER_H

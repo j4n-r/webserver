@@ -25,6 +25,7 @@
 #define PATHBUFSIZE 4096
 #define SOCKETERROR (-1)
 #define SERVER_BACKLOG 1
+#define DATABASE_URL "webserver/database.txt"
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
@@ -53,7 +54,8 @@ typedef struct httpMessage {
 // if exp == -1 , print error message and qui programm
 int checkErr(const int exp, const char* msg);
 // puts the headers in the
-size_t constructHttpHeaders(httpM* response, httpM* request);
+size_t fillResHeaders(httpM* response, httpM* request);
+size_t fillReqHeaders(httpM* response, httpM* request);
 size_t getRequest(httpM* request, const int client_socket);
 int getPathFromRequest(httpM* request);
 size_t readFile(char* contentBuffer, const char* fullPath);

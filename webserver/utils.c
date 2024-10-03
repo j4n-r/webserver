@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 
-size_t readFile(char* contentBuffer, const char* fullPath) {
+size_t readFile(char contentBuffer[BUFSIZE], const char* fullPath) {
     FILE* fp = fopen(fullPath, "r");
     if (fp == NULL) {
         perror("Error opening file");
@@ -74,7 +74,7 @@ int parseContentTypeFromPath(httpM* response, httpM* request) {
         strncpy(response->headers->contentType, html, strlen(html));
         return 1;
     } else if (!strcmp(extension, "ico")) {
-        strncpy(response->headers->contentType, html, strlen(icon));
+        strncpy(response->headers->contentType, icon, strlen(icon));
         return 1;
     }
     return 0;
@@ -101,7 +101,26 @@ int getPathFromRequest(httpM* request) {
     return 1;
 }
 
-size_t constructHttpHeaders(httpM* response, httpM* request) {
+size_t fillReqHeaders(httpM* response, httpM* request) {
+    char* methodStr = response->method ? "GET " : "POST";
+    time_t now = time(NULL);
+    if (strftime(response->headers->date, sizeof(response->headers->date),
+                 "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now)) == 0) {
+        exit(1);
+    }
+    snprintf(response->message, HEADERBUFSIZE,
+             "%s HTTP/1.1 200 OK\r\n"
+             "Date: %s\r\n"
+             "Content-Length: %d\r\n"
+             "Content-Type: %s\r\n"
+             "Connection: keep-alive\r\n"
+             "\r\n",
+             methodStr, response->headers->date,
+             response->headers->contentLength, response->headers->contentType);
+
+    return strlen(response->message);
+}
+size_t fillResHeaders(httpM* response, httpM* request) {
     time_t now = time(NULL);
     if (strftime(response->headers->date, sizeof(response->headers->date),
                  "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now)) == 0) {

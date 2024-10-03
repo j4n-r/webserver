@@ -2,12 +2,13 @@
 const taskInput = document.getElementById("task-input");
 const addTaskBtn = document.getElementById("add-task-btn");
 const taskList = document.getElementById("task-list");
-
 // Event listener for adding a task
 addTaskBtn.addEventListener("click", addTask);
 taskInput.addEventListener("keydown", (event) => {
     event.key == "Enter" ? addTask() : "";
 });
+
+window.addEventListener("load", loadTasks);
 
 // Function to add a task
 function addTask() {
@@ -71,3 +72,20 @@ function deleteTask() {
     const li = this.parentElement;
     taskList.removeChild(li);
 }
+
+
+// does not work currently server needs to know how to send a post request to the client
+async function loadTasks() {
+    try {
+        const response = await fetch("getTasks");
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const tasksText = await response.text();
+        const tasks = tasksText.split(" ; ").trim();
+        tasks.forEach(task => addTask(task));
+    } catch (error) {
+        console.error("Failed to load tasks:", error);
+    }
+}
+

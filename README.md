@@ -1,7 +1,6 @@
 # webserver with simple ToDoApp
-yeah... a bad ToDoApp.
 
 planned features:
 - [x] makefile
-- [x] safe tasks to File database
+- [x] safe tasks to file
 - [ ] Load tasks from file
